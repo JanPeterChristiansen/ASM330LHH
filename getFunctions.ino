@@ -21,8 +21,8 @@ gyr getGyr(TwoWire* i2c) {
   return gyr;
 }
 
-uint16_t getAxes(TwoWire* i2c, byte LO_ADDR, byte HI_ADDR) {
+int16_t getAxes(TwoWire* i2c, byte LO_ADDR, byte HI_ADDR) {
   byte high = readRegister(i2c, HI_ADDR);
   byte low = readRegister(i2c, LO_ADDR);
-  return high << 8 + low;
+  return (((uint16_t)high) << 8) | ((uint16_t)low);
 }

@@ -1,13 +1,14 @@
 #include <Wire.h>
-
+//pins
+#define CS 2   //I2C/SPI enable pin
+#define SDO 3  //IMU address LSB select
+//addresses
 #define SAD 0b1101011  //IMU I2C addresss. LSB is set by SDO to 1 (HIGH)
-#define CS 2           //I2C enable pin
-#define SDO 3          //IMU address LSB select
-#define READ 0x80
-#define WRITE 0x00
-#define WHO_AM_I 0x0F    // register containing device id
-#define FIFO_CTRL4 0x0A  // FIFO control register 4
-#define STATUS_REG 0x1E  //register containing availablility flags for data
+#define READ 0x80      //added to SAD to get read address
+#define WRITE 0x00     //added to SAD to get write addresss
+//startup registers
+#define CTRL1_XL 0x10  //acc odr and range register
+#define CTRL2_G 0x11   //gyr odr and range register
 //gyro registers
 #define OUTX_L_G 0x22  //pitch low
 #define OUTX_H_G 0x23  //pitch high
@@ -23,20 +24,24 @@
 #define OUTZ_L_A 0x2C  //az low
 #define OUTZ_H_A 0x2D  //az high
 
-struct gyr {
-  uint16_t pitch;
-  uint16_t roll;
-  uint16_t yaw;
+struct gyr {  //gyroscope states
+  int16_t pitch;
+  int16_t roll;
+  int16_t yaw;
 };
-struct acc {
-  uint16_t x;
-  uint16_t y;
-  uint16_t z;
+struct acc {  //accelerometer states
+  int16_t x;
+  int16_t y;
+  int16_t z;
 };
-struct imu {
+struct imu {  //combined IMU states
   acc acc;
   gyr gyr;
 };
+
+
+unsigned long t0 = millis();  //delay timer variable
+imu IMU;                      //imu struct
 
 void setup() {
   Wire.begin();             //join I2C bus as controller
@@ -45,31 +50,37 @@ void setup() {
   digitalWrite(CS, HIGH);   //enable I2C
   pinMode(SDO, OUTPUT);     //set SDO pnmode to output
   digitalWrite(SDO, HIGH);  //set SDO to high --> LSB of ASM addr is 1
-  delay(2000);
+  delay(100);
+  //set ODR_XL to 0110 (416 Hz), FS_XL to 00 (+-2g),
+  //and LPF2_XL_EN to 0 (LPF2 bypass)
+  writeRegister(&Wire, CTRL1_XL, 0b0110000);
+  //set ODR_G to 0110 (416 Hz), FS_G to 00 (+- 250 dpd),
+  //FS_125 to 0 (bypass), and FS_4000 to 0 (bypass)
+  writeRegister(&Wire, CTRL2_G, 0b01100000);
 }
 
 void loop() {
-  byte e = -1;
-  Serial.println("Start");
-
-  writeRegister(&Wire, FIFO_CTRL4, 0x00);
-  e = readRegister(&Wire, FIFO_CTRL4);
-  Serial.println(e, BIN);
-
-  writeRegister(&Wire, FIFO_CTRL4, 0x01);
-  e = readRegister(&Wire, FIFO_CTRL4);
-  Serial.println(e, BIN);
-
-  writeRegister(&Wire, FIFO_CTRL4, 0x00);
-  e = readRegister(&Wire, FIFO_CTRL4);
-  Serial.println(e, BIN);
-
-  writeRegister(&Wire, FIFO_CTRL4, 0xAA);
-  e = readRegister(&Wire, FIFO_CTRL4);
-  Serial.println(e, BIN);
-
-  Serial.println("Done!\n");
-  delay(2000);
+  if ((millis() - t0) > 5) {
+    t0 = millis();
+    IMU = getIMU(&Wire);
+    printIMU(&IMU);
+  }
 }
 
 
+void printIMU(imu* imu) {
+  Serial.print(millis());
+  Serial.print(",");
+  Serial.print(imu->acc.x);
+  Serial.print(",");
+  Serial.print(imu->acc.y);
+  Serial.print(",");
+  Serial.print(imu->acc.z);
+  Serial.print(",");
+  Serial.print(imu->gyr.roll);
+  Serial.print(",");
+  Serial.print(imu->gyr.pitch);
+  Serial.print(",");
+  Serial.print(imu->gyr.yaw);
+  Serial.println("");
+}
