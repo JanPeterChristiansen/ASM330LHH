@@ -27,34 +27,29 @@
 #define OUTZ_H_A 0x2D  //az high
 
 struct gyr {  //gyroscope states
-  int16_t pitch;
-  int16_t roll;
-  int16_t yaw;
+  int pitch;
+  int roll;
+  int yaw;
 };
 struct acc {  //accelerometer states
-  int16_t x;
-  int16_t y;
-  int16_t z;
-};
-struct imu {  //combined IMU states
-  acc acc;
-  gyr gyr;
+  int x;
+  int y;
+  int z;
 };
 
 class ASM330LHH {
 public:
   ASM330LHH(TwoWire* i2c, int cs, int sdo);
+  void begin();
   void getAcc();
   void getGyr();
   void getIMU();
   acc acc;
   gyr gyr;
-  imu imu;
 private:
-  void init();
-  int readReg(int reg);
-  void writeReg(int reg, int data);
-  int getAxes(int LO_ADDR, int HI_ADDR);
+  byte readReg(byte reg);
+  void writeReg(byte reg, byte data);
+  int getAxes(byte LO_ADDR, byte HI_ADDR);
   TwoWire* i2c;
   int cs;
   int sdo;
