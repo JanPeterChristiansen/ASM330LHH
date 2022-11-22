@@ -15,12 +15,12 @@ void loop() {
   unsigned long t = millis();
   IMU.getIMU();
   printIMU();
-  Serial.println(millis()-t);
+  while ((millis() - t) < 10) {}
 }
 
 
 void printIMU() {
-  Serial.print(String(millis())+",");
+  Serial.print(String(millis()) + ",");
   Serial.print(String(IMU.acc.x) + ",");
   Serial.print(String(IMU.acc.y) + ",");
   Serial.print(String(IMU.acc.z) + ",");
